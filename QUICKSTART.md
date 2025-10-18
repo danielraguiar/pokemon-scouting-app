@@ -127,17 +127,3 @@ DEFAULT_POKEMON = [
     'dragonite'   # Add here
 ]
 ```
-
-### Custom Database Queries
-
-```python
-from app import create_app
-from app.models import Pokemon, PokemonType
-
-app = create_app()
-with app.app_context():
-    electric_types = Pokemon.query.join(Pokemon.types).filter(
-        PokemonType.type_name == 'electric'
-    ).all()
-```
-

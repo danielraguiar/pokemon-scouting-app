@@ -1,6 +1,6 @@
 # Pokémon Scouting Application
 
-A professional Python Flask application for retrieving, processing, storing, and exporting Pokémon data from the PokeAPI. This application provides both REST API endpoints and CLI commands for comprehensive Pokémon data management.
+A Python Flask application for retrieving, processing, storing, and exporting Pokémon data from the PokeAPI. This application provides both REST API endpoints and CLI commands for comprehensive Pokémon data management.
 
 ## Features
 
@@ -244,42 +244,6 @@ flask --app run main fetch-pokemon snorlax gyarados
 curl -X POST http://localhost:5000/pokemon/fetch/snorlax
 ```
 
-### Batch Operations
-
-Create a custom script or use the API to fetch multiple Pokémon:
-
-```python
-from app import create_app
-from app.services.data_processor import DataProcessor
-
-app = create_app()
-with app.app_context():
-    processor = DataProcessor()
-    pokemon_names = ['bulbasaur', 'ivysaur', 'venusaur']
-    results, errors = processor.fetch_multiple_pokemon(pokemon_names)
-    print(f"Successfully fetched: {len(results)}")
-```
-
-### Custom Queries
-
-Access the database directly in Python:
-
-```python
-from app import create_app
-from app.models import Pokemon
-
-app = create_app()
-with app.app_context():
-    electric_types = Pokemon.query.join(Pokemon.types).filter(
-        PokemonType.type_name == 'electric'
-    ).all()
-    
-    for pokemon in electric_types:
-        print(f"{pokemon.name} - #{pokemon.pokedex_id}")
-```
-
-## Troubleshooting
-
 ### Database Issues
 
 If you encounter database errors, reset the database:
@@ -344,16 +308,3 @@ pip install -r requirements.txt
 6. **Testing**: Unit and integration tests
 7. **Configuration Management**: Environment-based settings
 8. **Documentation**: Comprehensive inline and README docs
-
-## License
-
-This project is provided as-is for educational and scouting purposes.
-
-## Acknowledgments
-
-- PokeAPI (https://pokeapi.co/) for providing comprehensive Pokémon data
-- Flask and SQLAlchemy communities for excellent documentation
-
-## Support
-
-For issues, questions, or contributions, please open an issue on the GitHub repository.
