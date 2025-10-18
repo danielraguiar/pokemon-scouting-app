@@ -99,11 +99,11 @@ def fetch_pokemon_cli(names):
         for name in names:
             try:
                 pokemon = processor.fetch_and_store_pokemon(name.lower())
-                click.echo(f'✓ Successfully fetched and stored: {pokemon.name}')
+                click.echo(f'[OK] Successfully fetched and stored: {pokemon.name}')
             except ValueError as e:
-                click.echo(f'✗ Error fetching {name}: {str(e)}', err=True)
+                click.echo(f'[ERROR] Error fetching {name}: {str(e)}', err=True)
             except Exception as e:
-                click.echo(f'✗ Unexpected error fetching {name}: {str(e)}', err=True)
+                click.echo(f'[ERROR] Unexpected error fetching {name}: {str(e)}', err=True)
 
 
 @bp.cli.command('fetch-default')
@@ -116,12 +116,12 @@ def fetch_default_pokemon():
     with current_app.app_context():
         results, errors = processor.fetch_multiple_pokemon(pokemon_names)
         
-        click.echo(f'\n✓ Successfully fetched: {len(results)} pokemon')
+        click.echo(f'\n[OK] Successfully fetched: {len(results)} pokemon')
         for pokemon in results:
             click.echo(f'  - {pokemon.name} (#{pokemon.pokedex_id})')
         
         if errors:
-            click.echo(f'\n✗ Errors: {len(errors)}')
+            click.echo(f'\n[ERROR] Errors: {len(errors)}')
             for error in errors:
                 click.echo(f'  - {error["pokemon"]}: {error["error"]}')
 
@@ -154,7 +154,7 @@ def export_json_cli(output_file):
     exporter = DataExporter()
     exporter.export_multiple_to_json(pokemon_list, output_file)
     
-    click.echo(f'✓ Exported {len(pokemon_list)} pokemon to {output_file}')
+    click.echo(f'[OK] Exported {len(pokemon_list)} pokemon to {output_file}')
 
 
 @bp.cli.command('export-csv')
@@ -169,5 +169,5 @@ def export_csv_cli(output_file):
     exporter = DataExporter()
     exporter.export_to_csv(pokemon_list, output_file)
     
-    click.echo(f'✓ Exported {len(pokemon_list)} pokemon to {output_file}')
+    click.echo(f'[OK] Exported {len(pokemon_list)} pokemon to {output_file}')
 
