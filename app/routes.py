@@ -1,6 +1,7 @@
 from flask import Blueprint, jsonify, request, current_app
 from app.models import db, Pokemon
 from app.services.data_processor import DataProcessor
+from app.services.exporter import DataExporter
 import click
 
 bp = Blueprint('main', __name__)
@@ -139,4 +140,34 @@ def list_pokemon_cli():
         click.echo(f'  Types: {", ".join([t.type_name for t in p.types])}')
         click.echo(f'  Abilities: {", ".join([a.ability_name for a in p.abilities])}')
         click.echo()
+
+
+@bp.cli.command('export-json')
+@click.argument('output_file')
+def export_json_cli(output_file):
+    pokemon_list = Pokemon.query.all()
+    
+    if not pokemon_list:
+        click.echo('No pokemon found in database')
+        return
+    
+    exporter = DataExporter()
+    exporter.export_multiple_to_json(pokemon_list, output_file)
+    
+    click.echo(f'✓ Exported {len(pokemon_list)} pokemon to {output_file}')
+
+
+@bp.cli.command('export-csv')
+@click.argument('output_file')
+def export_csv_cli(output_file):
+    pokemon_list = Pokemon.query.all()
+    
+    if not pokemon_list:
+        click.echo('No pokemon found in database')
+        return
+    
+    exporter = DataExporter()
+    exporter.export_to_csv(pokemon_list, output_file)
+    
+    click.echo(f'✓ Exported {len(pokemon_list)} pokemon to {output_file}')
 
