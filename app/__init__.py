@@ -2,6 +2,7 @@ from flask import Flask
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 from flask_cors import CORS
+from flask_migrate import Migrate
 from app.config import Config
 from app.models import db
 import logging
@@ -13,6 +14,7 @@ limiter = Limiter(
     default_limits=["200 per day", "50 per hour"],
     storage_uri="memory://"
 )
+migrate = Migrate()
 
 
 def setup_logging(app):
@@ -47,6 +49,7 @@ def create_app(config_class=Config):
     })
     
     db.init_app(app)
+    migrate.init_app(app, db)
     limiter.init_app(app)
     setup_logging(app)
     
