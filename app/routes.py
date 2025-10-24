@@ -23,10 +23,20 @@ def index():
 
 @bp.route('/pokemon', methods=['GET'])
 def list_pokemon():
-    pokemon_list = Pokemon.query.all()
+    page = request.args.get('page', 1, type=int)
+    per_page = request.args.get('per_page', 20, type=int)
+    per_page = min(per_page, 100)
+    
+    pagination = Pokemon.query.paginate(
+        page=page, per_page=per_page, error_out=False
+    )
+    
     return jsonify({
-        'count': len(pokemon_list),
-        'pokemon': [{'id': p.id, 'name': p.name, 'pokedex_id': p.pokedex_id} for p in pokemon_list]
+        'count': pagination.total,
+        'page': page,
+        'per_page': per_page,
+        'total_pages': pagination.pages,
+        'pokemon': [{'id': p.id, 'name': p.name, 'pokedex_id': p.pokedex_id} for p in pagination.items]
     })
 
 
