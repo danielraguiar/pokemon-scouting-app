@@ -1,4 +1,6 @@
 import requests
+from requests.adapters import HTTPAdapter
+from urllib3.util.retry import Retry
 from typing import Optional, Dict, Any
 from flask import current_app
 
@@ -11,6 +13,16 @@ class PokeAPIClient:
         self.session.headers.update({
             'User-Agent': 'Pokemon-Scouting-App/1.0'
         })
+        
+        retry_strategy = Retry(
+            total=3,
+            backoff_factor=1,
+            status_forcelist=[429, 500, 502, 503, 504],
+            allowed_methods=["GET"]
+        )
+        adapter = HTTPAdapter(max_retries=retry_strategy)
+        self.session.mount("http://", adapter)
+        self.session.mount("https://", adapter)
     
     def get_pokemon(self, pokemon_identifier: str) -> Optional[Dict[str, Any]]:
         url = f"{self.base_url}/pokemon/{pokemon_identifier.lower()}"
