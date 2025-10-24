@@ -18,6 +18,7 @@ class Pokemon(db.Model):
     sprite_url = db.Column(db.String(500))
     is_legendary = db.Column(db.Boolean, default=False)
     is_mythical = db.Column(db.Boolean, default=False)
+    deleted_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
     updated_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
     
@@ -25,6 +26,18 @@ class Pokemon(db.Model):
     abilities = db.relationship('PokemonAbility', back_populates='pokemon', cascade='all, delete-orphan')
     stats = db.relationship('PokemonStat', back_populates='pokemon', cascade='all, delete-orphan')
     moves = db.relationship('PokemonMove', back_populates='pokemon', cascade='all, delete-orphan')
+    
+    def soft_delete(self):
+        self.deleted_at = datetime.now(UTC)
+        db.session.commit()
+    
+    def restore(self):
+        self.deleted_at = None
+        db.session.commit()
+    
+    @property
+    def is_deleted(self):
+        return self.deleted_at is not None
     
     def to_dict(self):
         return {

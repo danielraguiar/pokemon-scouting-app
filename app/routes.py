@@ -56,9 +56,14 @@ def health_check():
 def list_pokemon():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 20, type=int)
+    include_deleted = request.args.get('include_deleted', 'false').lower() == 'true'
     per_page = min(per_page, 100)
     
-    pagination = Pokemon.query.paginate(
+    query = Pokemon.query
+    if not include_deleted:
+        query = query.filter_by(deleted_at=None)
+    
+    pagination = query.paginate(
         page=page, per_page=per_page, error_out=False
     )
     
@@ -82,7 +87,7 @@ def get_pokemon(name):
         db.joinedload(Pokemon.abilities),
         db.joinedload(Pokemon.stats),
         db.joinedload(Pokemon.moves)
-    ).filter_by(name=name.lower()).first()
+    ).filter_by(name=name.lower(), deleted_at=None).first()
     
     if not pokemon:
         return jsonify({'error': f'Pokemon {name} not found in database'}), 404
@@ -161,6 +166,43 @@ def export_pokemon(name):
         return jsonify({'error': f'Pokemon {name} not found in database'}), 404
     
     return jsonify(pokemon.to_dict())
+
+
+@bp.route('/pokemon/<string:name>', methods=['DELETE'])
+def soft_delete_pokemon(name):
+    if not validate_pokemon_name(name):
+        return jsonify({'error': 'Invalid pokemon name format'}), 400
+    
+    pokemon = Pokemon.query.filter_by(name=name.lower(), deleted_at=None).first()
+    
+    if not pokemon:
+        return jsonify({'error': f'Pokemon {name} not found in database'}), 404
+    
+    pokemon.soft_delete()
+    cache.clear()
+    
+    return jsonify({
+        'message': f'Successfully soft deleted {pokemon.name}',
+        'deleted_at': pokemon.deleted_at.isoformat()
+    }), 200
+
+
+@bp.route('/pokemon/<string:name>/restore', methods=['POST'])
+def restore_pokemon(name):
+    if not validate_pokemon_name(name):
+        return jsonify({'error': 'Invalid pokemon name format'}), 400
+    
+    pokemon = Pokemon.query.filter_by(name=name.lower()).filter(Pokemon.deleted_at.isnot(None)).first()
+    
+    if not pokemon:
+        return jsonify({'error': f'Deleted pokemon {name} not found in database'}), 404
+    
+    pokemon.restore()
+    cache.clear()
+    
+    return jsonify({
+        'message': f'Successfully restored {pokemon.name}'
+    }), 200
 
 
 @bp.cli.command('fetch-pokemon')
