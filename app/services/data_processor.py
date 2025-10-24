@@ -19,17 +19,44 @@ class DataProcessor:
         return pokemon
     
     def _sanitize_pokemon_data(self, raw_data: Dict[str, Any]) -> Dict[str, Any]:
+        sprites = raw_data.get('sprites', {})
+        sprite_url = sprites.get('front_default') or sprites.get('other', {}).get('official-artwork', {}).get('front_default')
+        
         return {
             'name': raw_data.get('name', '').lower(),
             'pokedex_id': raw_data.get('id', 0),
             'height': raw_data.get('height', 0),
             'weight': raw_data.get('weight', 0),
             'base_experience': raw_data.get('base_experience', 0),
+            'generation': self._extract_generation(raw_data.get('id', 0)),
+            'sprite_url': sprite_url,
+            'is_legendary': raw_data.get('is_legendary', False),
+            'is_mythical': raw_data.get('is_mythical', False),
             'types': self._extract_types(raw_data.get('types', [])),
             'abilities': self._extract_abilities(raw_data.get('abilities', [])),
             'stats': self._extract_stats(raw_data.get('stats', [])),
             'moves': self._extract_moves(raw_data.get('moves', []))
         }
+    
+    def _extract_generation(self, pokedex_id: int) -> int:
+        if pokedex_id <= 151:
+            return 1
+        elif pokedex_id <= 251:
+            return 2
+        elif pokedex_id <= 386:
+            return 3
+        elif pokedex_id <= 493:
+            return 4
+        elif pokedex_id <= 649:
+            return 5
+        elif pokedex_id <= 721:
+            return 6
+        elif pokedex_id <= 809:
+            return 7
+        elif pokedex_id <= 905:
+            return 8
+        else:
+            return 9
     
     def _extract_types(self, types_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         return [
@@ -62,6 +89,8 @@ class DataProcessor:
     
     def _extract_moves(self, moves_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         extracted_moves = []
+        level_up_moves = []
+        other_moves = []
         
         for move_entry in moves_data:
             move_name = move_entry['move']['name']
@@ -69,13 +98,23 @@ class DataProcessor:
             
             if version_group_details:
                 latest_version = version_group_details[-1]
-                extracted_moves.append({
+                learn_method = latest_version.get('move_learn_method', {}).get('name', 'unknown')
+                move_data = {
                     'name': move_name,
-                    'learn_method': latest_version.get('move_learn_method', {}).get('name', 'unknown'),
+                    'learn_method': learn_method,
                     'level_learned_at': latest_version.get('level_learned_at', 0)
-                })
+                }
+                
+                if learn_method == 'level-up':
+                    level_up_moves.append(move_data)
+                elif learn_method in ['machine', 'tutor', 'egg']:
+                    other_moves.append(move_data)
         
-        return extracted_moves
+        level_up_moves.sort(key=lambda x: x['level_learned_at'])
+        extracted_moves.extend(level_up_moves[:50])
+        extracted_moves.extend(other_moves[:50])
+        
+        return extracted_moves[:100]
     
     def _get_or_create_pokemon(self, data: Dict[str, Any]) -> Pokemon:
         pokemon = Pokemon.query.filter_by(name=data['name']).first()
@@ -85,6 +124,10 @@ class DataProcessor:
             pokemon.weight = data['weight']
             pokemon.base_experience = data['base_experience']
             pokemon.pokedex_id = data['pokedex_id']
+            pokemon.generation = data['generation']
+            pokemon.sprite_url = data['sprite_url']
+            pokemon.is_legendary = data['is_legendary']
+            pokemon.is_mythical = data['is_mythical']
             
             for relation in ['types', 'abilities', 'stats', 'moves']:
                 getattr(pokemon, relation).clear()
@@ -94,7 +137,11 @@ class DataProcessor:
                 pokedex_id=data['pokedex_id'],
                 height=data['height'],
                 weight=data['weight'],
-                base_experience=data['base_experience']
+                base_experience=data['base_experience'],
+                generation=data['generation'],
+                sprite_url=data['sprite_url'],
+                is_legendary=data['is_legendary'],
+                is_mythical=data['is_mythical']
             )
             db.session.add(pokemon)
         

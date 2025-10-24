@@ -1,5 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetime, UTC
 import json
 
 db = SQLAlchemy()
@@ -14,13 +14,30 @@ class Pokemon(db.Model):
     height = db.Column(db.Integer)
     weight = db.Column(db.Integer)
     base_experience = db.Column(db.Integer)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    generation = db.Column(db.Integer)
+    sprite_url = db.Column(db.String(500))
+    is_legendary = db.Column(db.Boolean, default=False)
+    is_mythical = db.Column(db.Boolean, default=False)
+    deleted_at = db.Column(db.DateTime, nullable=True)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
     
     types = db.relationship('PokemonType', back_populates='pokemon', cascade='all, delete-orphan')
     abilities = db.relationship('PokemonAbility', back_populates='pokemon', cascade='all, delete-orphan')
     stats = db.relationship('PokemonStat', back_populates='pokemon', cascade='all, delete-orphan')
     moves = db.relationship('PokemonMove', back_populates='pokemon', cascade='all, delete-orphan')
+    
+    def soft_delete(self):
+        self.deleted_at = datetime.now(UTC)
+        db.session.commit()
+    
+    def restore(self):
+        self.deleted_at = None
+        db.session.commit()
+    
+    @property
+    def is_deleted(self):
+        return self.deleted_at is not None
     
     def to_dict(self):
         return {
@@ -30,6 +47,10 @@ class Pokemon(db.Model):
             'height': self.height,
             'weight': self.weight,
             'base_experience': self.base_experience,
+            'generation': self.generation,
+            'sprite_url': self.sprite_url,
+            'is_legendary': self.is_legendary,
+            'is_mythical': self.is_mythical,
             'types': [t.to_dict() for t in self.types],
             'abilities': [a.to_dict() for a in self.abilities],
             'stats': [s.to_dict() for s in self.stats],

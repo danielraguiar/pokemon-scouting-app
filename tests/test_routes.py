@@ -15,6 +15,9 @@ def test_list_pokemon_empty(client):
     assert response.status_code == 200
     data = json.loads(response.data)
     assert data['count'] == 0
+    assert data['page'] == 1
+    assert data['per_page'] == 20
+    assert data['total_pages'] == 0
     assert data['pokemon'] == []
 
 
@@ -28,6 +31,8 @@ def test_list_pokemon_with_data(app, client):
     assert response.status_code == 200
     data = json.loads(response.data)
     assert data['count'] == 1
+    assert data['page'] == 1
+    assert data['total_pages'] == 1
     assert len(data['pokemon']) == 1
 
 
