@@ -62,6 +62,8 @@ class DataProcessor:
     
     def _extract_moves(self, moves_data: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
         extracted_moves = []
+        level_up_moves = []
+        other_moves = []
         
         for move_entry in moves_data:
             move_name = move_entry['move']['name']
@@ -69,13 +71,23 @@ class DataProcessor:
             
             if version_group_details:
                 latest_version = version_group_details[-1]
-                extracted_moves.append({
+                learn_method = latest_version.get('move_learn_method', {}).get('name', 'unknown')
+                move_data = {
                     'name': move_name,
-                    'learn_method': latest_version.get('move_learn_method', {}).get('name', 'unknown'),
+                    'learn_method': learn_method,
                     'level_learned_at': latest_version.get('level_learned_at', 0)
-                })
+                }
+                
+                if learn_method == 'level-up':
+                    level_up_moves.append(move_data)
+                elif learn_method in ['machine', 'tutor', 'egg']:
+                    other_moves.append(move_data)
         
-        return extracted_moves
+        level_up_moves.sort(key=lambda x: x['level_learned_at'])
+        extracted_moves.extend(level_up_moves[:50])
+        extracted_moves.extend(other_moves[:50])
+        
+        return extracted_moves[:100]
     
     def _get_or_create_pokemon(self, data: Dict[str, Any]) -> Pokemon:
         pokemon = Pokemon.query.filter_by(name=data['name']).first()
