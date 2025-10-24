@@ -24,6 +24,7 @@ def index():
     return jsonify({
         'message': 'Pokemon Scouting API',
         'endpoints': {
+            '/health': 'GET - Health check endpoint',
             '/pokemon': 'GET - List all pokemon',
             '/pokemon/<name>': 'GET - Get specific pokemon',
             '/pokemon/fetch/<name>': 'POST - Fetch and store pokemon from API',
@@ -31,6 +32,23 @@ def index():
             '/pokemon/<name>/export': 'GET - Export pokemon data as JSON'
         }
     })
+
+
+@bp.route('/health')
+def health_check():
+    try:
+        pokemon_count = Pokemon.query.count()
+        return jsonify({
+            'status': 'healthy',
+            'database': 'connected',
+            'pokemon_count': pokemon_count
+        }), 200
+    except Exception as e:
+        return jsonify({
+            'status': 'unhealthy',
+            'database': 'disconnected',
+            'error': str(e)
+        }), 503
 
 
 @bp.route('/pokemon', methods=['GET'])
