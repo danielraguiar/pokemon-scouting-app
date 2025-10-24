@@ -2,7 +2,7 @@ from flask import Blueprint, jsonify, request, current_app
 from app.models import db, Pokemon
 from app.services.data_processor import DataProcessor
 from app.services.exporter import DataExporter
-from app import limiter
+from app import limiter, cache
 import click
 import re
 
@@ -52,6 +52,7 @@ def health_check():
 
 
 @bp.route('/pokemon', methods=['GET'])
+@cache.cached(timeout=300, query_string=True)
 def list_pokemon():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 20, type=int)
@@ -71,6 +72,7 @@ def list_pokemon():
 
 
 @bp.route('/pokemon/<string:name>', methods=['GET'])
+@cache.cached(timeout=300, query_string=True)
 def get_pokemon(name):
     if not validate_pokemon_name(name):
         return jsonify({'error': 'Invalid pokemon name format'}), 400
