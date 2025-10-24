@@ -220,10 +220,10 @@ def stream_export_json():
         
         first = True
         for pokemon in Pokemon.query.options(
-            db.joinedload(Pokemon.types),
-            db.joinedload(Pokemon.abilities),
-            db.joinedload(Pokemon.stats),
-            db.joinedload(Pokemon.moves)
+            db.selectinload(Pokemon.types),
+            db.selectinload(Pokemon.abilities),
+            db.selectinload(Pokemon.stats),
+            db.selectinload(Pokemon.moves)
         ).filter_by(deleted_at=None).yield_per(50):
             if not first:
                 yield ', '
@@ -245,9 +245,9 @@ def stream_export_csv():
         yield 'name,pokedex_id,height,weight,base_experience,generation,is_legendary,is_mythical,types,abilities,hp,attack,defense,special_attack,special_defense,speed\n'
         
         for pokemon in Pokemon.query.options(
-            db.joinedload(Pokemon.types),
-            db.joinedload(Pokemon.abilities),
-            db.joinedload(Pokemon.stats)
+            db.selectinload(Pokemon.types),
+            db.selectinload(Pokemon.abilities),
+            db.selectinload(Pokemon.stats)
         ).filter_by(deleted_at=None).yield_per(50):
             stats_dict = {stat.stat_name: stat.base_stat for stat in pokemon.stats}
             
