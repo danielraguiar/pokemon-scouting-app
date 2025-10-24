@@ -1,10 +1,11 @@
-from flask import Blueprint, jsonify, request, current_app
+from flask import Blueprint, jsonify, request, current_app, Response, stream_with_context
 from app.models import db, Pokemon
 from app.services.data_processor import DataProcessor
 from app.services.exporter import DataExporter
 from app import limiter, cache
 import click
 import re
+import json
 
 bp = Blueprint('main', __name__)
 
@@ -25,11 +26,14 @@ def index():
         'message': 'Pokemon Scouting API',
         'endpoints': {
             '/health': 'GET - Health check endpoint',
-            '/pokemon': 'GET - List all pokemon',
-            '/pokemon/<name>': 'GET - Get specific pokemon',
+            '/pokemon': 'GET - List all pokemon (supports ?include_deleted=true)',
+            '/pokemon/<name>': 'GET - Get specific pokemon / DELETE - Soft delete pokemon',
+            '/pokemon/<name>/restore': 'POST - Restore soft-deleted pokemon',
             '/pokemon/fetch/<name>': 'POST - Fetch and store pokemon from API',
             '/pokemon/fetch-multiple': 'POST - Fetch multiple pokemon (JSON body with "names" array)',
-            '/pokemon/<name>/export': 'GET - Export pokemon data as JSON'
+            '/pokemon/<name>/export': 'GET - Export pokemon data as JSON',
+            '/pokemon/export/stream/json': 'GET - Stream export all pokemon as JSON',
+            '/pokemon/export/stream/csv': 'GET - Stream export all pokemon as CSV'
         }
     })
 
@@ -203,6 +207,76 @@ def restore_pokemon(name):
     return jsonify({
         'message': f'Successfully restored {pokemon.name}'
     }), 200
+
+
+@bp.route('/pokemon/export/stream/json', methods=['GET'])
+def stream_export_json():
+    def generate():
+        yield '{"count": '
+        
+        count = Pokemon.query.filter_by(deleted_at=None).count()
+        yield str(count)
+        yield ', "pokemon": ['
+        
+        first = True
+        for pokemon in Pokemon.query.options(
+            db.joinedload(Pokemon.types),
+            db.joinedload(Pokemon.abilities),
+            db.joinedload(Pokemon.stats),
+            db.joinedload(Pokemon.moves)
+        ).filter_by(deleted_at=None).yield_per(50):
+            if not first:
+                yield ', '
+            first = False
+            yield json.dumps(pokemon.to_dict())
+        
+        yield ']}'
+    
+    return Response(
+        stream_with_context(generate()),
+        mimetype='application/json',
+        headers={'Content-Disposition': 'attachment; filename=pokemon_export.json'}
+    )
+
+
+@bp.route('/pokemon/export/stream/csv', methods=['GET'])
+def stream_export_csv():
+    def generate():
+        yield 'name,pokedex_id,height,weight,base_experience,generation,is_legendary,is_mythical,types,abilities,hp,attack,defense,special_attack,special_defense,speed\n'
+        
+        for pokemon in Pokemon.query.options(
+            db.joinedload(Pokemon.types),
+            db.joinedload(Pokemon.abilities),
+            db.joinedload(Pokemon.stats)
+        ).filter_by(deleted_at=None).yield_per(50):
+            stats_dict = {stat.stat_name: stat.base_stat for stat in pokemon.stats}
+            
+            row = [
+                pokemon.name,
+                str(pokemon.pokedex_id),
+                str(pokemon.height or ''),
+                str(pokemon.weight or ''),
+                str(pokemon.base_experience or ''),
+                str(pokemon.generation or ''),
+                str(pokemon.is_legendary),
+                str(pokemon.is_mythical),
+                '; '.join([t.type_name for t in pokemon.types]),
+                '; '.join([a.ability_name for a in pokemon.abilities]),
+                str(stats_dict.get('hp', 0)),
+                str(stats_dict.get('attack', 0)),
+                str(stats_dict.get('defense', 0)),
+                str(stats_dict.get('special-attack', 0)),
+                str(stats_dict.get('special-defense', 0)),
+                str(stats_dict.get('speed', 0))
+            ]
+            
+            yield ','.join(row) + '\n'
+    
+    return Response(
+        stream_with_context(generate()),
+        mimetype='text/csv',
+        headers={'Content-Disposition': 'attachment; filename=pokemon_export.csv'}
+    )
 
 
 @bp.cli.command('fetch-pokemon')
