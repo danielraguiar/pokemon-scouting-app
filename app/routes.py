@@ -2,6 +2,7 @@ from flask import Blueprint, jsonify, request, current_app
 from app.models import db, Pokemon
 from app.services.data_processor import DataProcessor
 from app.services.exporter import DataExporter
+from app import limiter
 import click
 import re
 
@@ -65,6 +66,7 @@ def get_pokemon(name):
 
 
 @bp.route('/pokemon/fetch/<string:name>', methods=['POST'])
+@limiter.limit("10 per minute")
 def fetch_pokemon(name):
     if not validate_pokemon_name(name):
         return jsonify({'error': 'Invalid pokemon name format'}), 400
@@ -84,6 +86,7 @@ def fetch_pokemon(name):
 
 
 @bp.route('/pokemon/fetch-multiple', methods=['POST'])
+@limiter.limit("5 per minute")
 def fetch_multiple_pokemon():
     data = request.get_json()
     
