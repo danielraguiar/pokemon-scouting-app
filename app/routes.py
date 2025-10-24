@@ -24,6 +24,8 @@ def validate_pokemon_name(name: str) -> bool:
 def index():
     return jsonify({
         'message': 'Pokemon Scouting API',
+        'version': '1.0',
+        'documentation': '/api/docs - Interactive Swagger UI documentation',
         'endpoints': {
             '/health': 'GET - Health check endpoint',
             '/pokemon': 'GET - List all pokemon (supports ?include_deleted=true)',

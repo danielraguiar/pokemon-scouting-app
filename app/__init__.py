@@ -58,7 +58,11 @@ def create_app(config_class=Config):
     
     with app.app_context():
         from app import routes
+        from app.api_docs import api
+        
         app.register_blueprint(routes.bp)
+        api.init_app(app)
+        
         db.create_all()
     
     return app
