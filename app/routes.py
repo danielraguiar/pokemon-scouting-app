@@ -57,7 +57,12 @@ def get_pokemon(name):
     if not validate_pokemon_name(name):
         return jsonify({'error': 'Invalid pokemon name format'}), 400
     
-    pokemon = Pokemon.query.filter_by(name=name.lower()).first()
+    pokemon = Pokemon.query.options(
+        db.joinedload(Pokemon.types),
+        db.joinedload(Pokemon.abilities),
+        db.joinedload(Pokemon.stats),
+        db.joinedload(Pokemon.moves)
+    ).filter_by(name=name.lower()).first()
     
     if not pokemon:
         return jsonify({'error': f'Pokemon {name} not found in database'}), 404
@@ -125,7 +130,12 @@ def export_pokemon(name):
     if not validate_pokemon_name(name):
         return jsonify({'error': 'Invalid pokemon name format'}), 400
     
-    pokemon = Pokemon.query.filter_by(name=name.lower()).first()
+    pokemon = Pokemon.query.options(
+        db.joinedload(Pokemon.types),
+        db.joinedload(Pokemon.abilities),
+        db.joinedload(Pokemon.stats),
+        db.joinedload(Pokemon.moves)
+    ).filter_by(name=name.lower()).first()
     
     if not pokemon:
         return jsonify({'error': f'Pokemon {name} not found in database'}), 404
@@ -171,7 +181,10 @@ def fetch_default_pokemon():
 
 @bp.cli.command('list-pokemon')
 def list_pokemon_cli():
-    pokemon_list = Pokemon.query.all()
+    pokemon_list = Pokemon.query.options(
+        db.joinedload(Pokemon.types),
+        db.joinedload(Pokemon.abilities)
+    ).all()
     
     if not pokemon_list:
         click.echo('No pokemon found in database')
@@ -188,7 +201,12 @@ def list_pokemon_cli():
 @bp.cli.command('export-json')
 @click.argument('output_file')
 def export_json_cli(output_file):
-    pokemon_list = Pokemon.query.all()
+    pokemon_list = Pokemon.query.options(
+        db.joinedload(Pokemon.types),
+        db.joinedload(Pokemon.abilities),
+        db.joinedload(Pokemon.stats),
+        db.joinedload(Pokemon.moves)
+    ).all()
     
     if not pokemon_list:
         click.echo('No pokemon found in database')
@@ -203,7 +221,11 @@ def export_json_cli(output_file):
 @bp.cli.command('export-csv')
 @click.argument('output_file')
 def export_csv_cli(output_file):
-    pokemon_list = Pokemon.query.all()
+    pokemon_list = Pokemon.query.options(
+        db.joinedload(Pokemon.types),
+        db.joinedload(Pokemon.abilities),
+        db.joinedload(Pokemon.stats)
+    ).all()
     
     if not pokemon_list:
         click.echo('No pokemon found in database')
