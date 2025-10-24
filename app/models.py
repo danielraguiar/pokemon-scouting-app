@@ -1,5 +1,5 @@
 from flask_sqlalchemy import SQLAlchemy
-from datetime import datetime
+from datetime import datetime, UTC
 import json
 
 db = SQLAlchemy()
@@ -14,8 +14,8 @@ class Pokemon(db.Model):
     height = db.Column(db.Integer)
     weight = db.Column(db.Integer)
     base_experience = db.Column(db.Integer)
-    created_at = db.Column(db.DateTime, default=datetime.utcnow)
-    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC))
+    updated_at = db.Column(db.DateTime, default=lambda: datetime.now(UTC), onupdate=lambda: datetime.now(UTC))
     
     types = db.relationship('PokemonType', back_populates='pokemon', cascade='all, delete-orphan')
     abilities = db.relationship('PokemonAbility', back_populates='pokemon', cascade='all, delete-orphan')
