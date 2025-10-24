@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=development
+      - DATABASE_URL=sqlite:///pokemon_scouting.db
+      - POKEAPI_BASE_URL=https://pokeapi.co/api/v2
+    volumes:
+      - .:/app
+      - pokemon_data:/app/data
+    command: python run.py
+
+volumes:
+  pokemon_data:
+
