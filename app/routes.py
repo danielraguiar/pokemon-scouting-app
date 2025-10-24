@@ -3,8 +3,19 @@ from app.models import db, Pokemon
 from app.services.data_processor import DataProcessor
 from app.services.exporter import DataExporter
 import click
+import re
 
 bp = Blueprint('main', __name__)
+
+
+def validate_pokemon_name(name: str) -> bool:
+    if not name or not isinstance(name, str):
+        return False
+    if len(name) > 50:
+        return False
+    if not re.match(r'^[a-z0-9\-]+$', name.lower()):
+        return False
+    return True
 
 
 @bp.route('/')
@@ -42,6 +53,9 @@ def list_pokemon():
 
 @bp.route('/pokemon/<string:name>', methods=['GET'])
 def get_pokemon(name):
+    if not validate_pokemon_name(name):
+        return jsonify({'error': 'Invalid pokemon name format'}), 400
+    
     pokemon = Pokemon.query.filter_by(name=name.lower()).first()
     
     if not pokemon:
@@ -52,6 +66,9 @@ def get_pokemon(name):
 
 @bp.route('/pokemon/fetch/<string:name>', methods=['POST'])
 def fetch_pokemon(name):
+    if not validate_pokemon_name(name):
+        return jsonify({'error': 'Invalid pokemon name format'}), 400
+    
     try:
         processor = DataProcessor()
         pokemon = processor.fetch_and_store_pokemon(name.lower())
@@ -78,6 +95,16 @@ def fetch_multiple_pokemon():
     if not isinstance(names, list):
         return jsonify({'error': '"names" must be an array'}), 400
     
+    if len(names) > 100:
+        return jsonify({'error': 'Maximum 100 pokemon per request'}), 400
+    
+    invalid_names = [name for name in names if not validate_pokemon_name(name)]
+    if invalid_names:
+        return jsonify({
+            'error': 'Invalid pokemon name format',
+            'invalid_names': invalid_names
+        }), 400
+    
     processor = DataProcessor()
     results, errors = processor.fetch_multiple_pokemon(names)
     
@@ -92,6 +119,9 @@ def fetch_multiple_pokemon():
 
 @bp.route('/pokemon/<string:name>/export', methods=['GET'])
 def export_pokemon(name):
+    if not validate_pokemon_name(name):
+        return jsonify({'error': 'Invalid pokemon name format'}), 400
+    
     pokemon = Pokemon.query.filter_by(name=name.lower()).first()
     
     if not pokemon:
