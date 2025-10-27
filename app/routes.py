@@ -110,6 +110,7 @@ def fetch_pokemon(name):
     try:
         processor = DataProcessor()
         pokemon = processor.fetch_and_store_pokemon(name.lower())
+        cache.clear()
         
         return jsonify({
             'message': f'Successfully fetched and stored {pokemon.name}',
@@ -146,6 +147,7 @@ def fetch_multiple_pokemon():
     
     processor = DataProcessor()
     results, errors = processor.fetch_multiple_pokemon(names)
+    cache.clear()
     
     return jsonify({
         'message': f'Processed {len(results)} pokemon',
